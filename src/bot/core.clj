@@ -1,5 +1,9 @@
-(ns bot
-  (:require [clojure.string :as str]))
+(ns bot.core
+  (:require [clojure.string :as str])
+  (:gen-class))
+
+(defn get-connecting-cells [row col] 
+  ())
 
 (defn check-winner [board] ())
 
@@ -9,8 +13,7 @@
 (def board (atom []))
 
 ;Update the board with parsed data (list of vectors)
-;Note that it stores the given rows in reverse order from what the server
-;provides... it just seemed more sensible
+;Rows are stored from bottom up, contrary to servers top down
 (defn update-board [board-string] 
   (let [vs (vec (str/split board-string #";"))] 
     (reset! board (reverse (map #(str/split % #",") vs)))))
@@ -47,5 +50,3 @@
     (recur)))
 
 (defn -main [] (take-input))
-
-(-main)
