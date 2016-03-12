@@ -1,8 +1,10 @@
 (ns bot
   (:require [clojure.string :as str]))
 
+(def settings {})
+
 (defn save-setting [[k v]] 
-  (println k))
+  (assoc settings k v))
 
 (defn save-update [[player k v]] 
   (println k))
