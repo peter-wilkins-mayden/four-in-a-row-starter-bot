@@ -68,8 +68,8 @@
 ;Rows are stored from bottom up, contrary to servers top down
 (defn update-current-board [s] 
   (reset! current-board 
-          (reverse (map #(map read-string (str/split % #","))
-                              (str/split s #";")))))
+          (vec (reverse 
+            (map (comp vec #(map read-string (str/split % #","))) (str/split s #";"))))))
 
 ;Save settings
 (defn save-setting [[k v]] 
@@ -96,7 +96,7 @@
 
 ;Returns value in 'b' at (x, y)/(col, row)
 (defn get-cell [board [col row]]
-  (nth (nth board row) col))
+  (get-in [row col] board))
 
 ;Check if all the cells in row are owned by the same player
 (defn connected? [board cells] 
@@ -131,6 +131,13 @@
     (recur (rest top-row) 
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))
+
+;Simulate a user placing a chip in board, returns new board
+(defn simulate-move [board col player] 
+  (if (not (some #{col} (get-possible-moves board)))
+    false 
+    (let [row (.indexOf (map #(nth % col) board) 0)] 
+      (assoc-in board [row col] player))))
 
 ;returns a random action
 (defn get-action [[action t]] 
