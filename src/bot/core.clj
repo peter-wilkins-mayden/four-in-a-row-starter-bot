@@ -2,6 +2,10 @@
   (:require [clojure.string :as str])
   (:gen-class))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Setup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def board-rows 6)
 
 (def board-cols 7)
@@ -22,6 +26,7 @@
         :let [y row]]
     [x y]))
 
+;Returns a list of all possible rows of 4 that can win the match
 (def possible-4s
   (let [spaces (for 
                  [col (range board-cols) 
@@ -35,10 +40,14 @@
                     (juxt get-horizontal-4 get-vertical-4 get-diagonal-4) 
                     spaces)))))
 
-;Define the mutable program state
+;Define the mutable setting maps
 (def settings (atom {}))
 (def updates (atom {}))
 (def board (atom []))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Update Settings ;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;Update the board with parsed data (list of vectors)
 ;Rows are stored from bottom up, contrary to servers top down
@@ -57,9 +66,36 @@
     (update-board v)
     (swap! updates assoc-in [about k] (read-string v))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;Returns value in 'b' at (x, y)/(col, row)
+(defn get-cell [[col row]]
+  (nth (nth @board row) col))
+
+;returns the person who connected 4, or false 
+;if neither did
+(defn connect-4? [cells] 
+  (let [four (map get-cell cells)] 
+    (cond 
+      (every? #{1} four) 1
+      (every? #{2} four) 2
+      :else false
+      )))
+
+(defn check-winner [] 
+  (some identity (map connect-4? possible-4s)))
+
 ;returns a random action
 (defn get-action [[action t]] 
     (str "place-disc " (rand board-cols)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Logic Loop ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;Parse input from game host
 (defn parse-input [raw-input] 
