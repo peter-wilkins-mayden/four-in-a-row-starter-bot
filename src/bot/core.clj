@@ -42,9 +42,10 @@
 
 ;Update the board with parsed data (list of vectors)
 ;Rows are stored from bottom up, contrary to servers top down
-(defn update-board [board-string] 
-  (let [vs (vec (str/split board-string #";"))] 
-    (reset! board (reverse (map #(str/split % #",") vs)))))
+(defn update-board [s] 
+  (reset! board 
+          (reverse (map #(map read-string (str/split % #","))
+                              (str/split s #";")))))
 
 ;Save settings
 (defn save-setting [[k v]] 
