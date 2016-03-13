@@ -10,35 +10,35 @@
 
 (def board-cols 7)
 
-(defn get-left-diagonal-4 [[col row]]
-  (for [x (range (- col 3) (+ 1 col))
-        y (range row (+ row 4))
+(defn get-left-diagonal-x [l [col row]]
+  (for [x (range (- col (- l 1)) (+ 1 col))
+        y (range row (+ row l))
         :when (= (+ x y) (+ col row))]
     [x y]))
 
-(defn get-right-diagonal-4 [[col row]]
-  (for [x (range col (+ col 4))
-        y (range row (+ row 4))
+(defn get-right-diagonal-x [l [col row]]
+  (for [x (range col (+ col l))
+        y (range row (+ row l))
         :when (= (- x y) (- col row))]
     [x y]))
 
 
-(defn get-vertical-4 [[col row]]
-  (for [ y (range row (+ row 4))
+(defn get-vertical-x [l [col row]]
+  (for [ y (range row (+ row l))
         :let [x col]]
     [x y]))
 
-(defn get-horizontal-4 [[col row]]
-  (for [x (range col (+ col 4))
+(defn get-horizontal-x [l [col row]]
+  (for [x (range col (+ col l))
         :let [y row]]
     [x y]))
 
-;Returns a list of all possible rows of 4 that can win the match
-(def possible-4s
+;Returns a list of all possible rows of x
+(defn possible-xs [x]
   (let [spaces (for 
                  [col (range board-cols) 
                   row (range board-rows) 
-                  :when (or (<= col 3) (<= row 2))] 
+                  :when (or (<= col (- board-cols x)) (<= row (- board-rows x)))] 
                  [col row])] 
    (filter (fn [[& pairs]] 
              (every? #(and (< (first %) board-cols) 
@@ -47,11 +47,15 @@
                      pairs)) 
            (apply concat 
                   (map 
-                    (juxt get-horizontal-4 
-                          get-vertical-4 
-                          get-right-diagonal-4 
-                          get-left-diagonal-4) 
+                    (juxt (partial get-horizontal-x x)
+                          (partial get-vertical-x x)
+                          (partial get-right-diagonal-x x)
+                          (partial get-left-diagonal-x x))
                     spaces)))))
+
+(def possible-4s (possible-xs 4))
+(def possible-3s (possible-xs 3))
+(def possible-2s (possible-xs 2))
 
 ;Define the mutable setting maps
 (def settings (atom {}))
@@ -83,7 +87,7 @@
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def minimax-depth 4)
+(def max-depth 4)
 
 ;Returns value in 'b' at (x, y)/(col, row)
 (defn get-cell [board [col row]]
@@ -111,7 +115,7 @@
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))
 
-(defn get-board-score [board] ())
+(defn get-board-score [board depth opponent?] ())
 
 ;returns a random action
 (defn get-action [[action t]] 
