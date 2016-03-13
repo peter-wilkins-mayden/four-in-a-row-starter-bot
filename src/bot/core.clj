@@ -2,10 +2,38 @@
   (:require [clojure.string :as str])
   (:gen-class))
 
-(defn get-connecting-cells [row col] 
-  ())
+(def board-rows 6)
 
-(defn check-winner [board] ())
+(def board-cols 7)
+
+(defn get-diagonal-4 [[col row]]
+  (for [x (range col (+ col 4))
+        y (range row (+ row 4))
+        :when (= (- x y) (- col row))]
+    [x y]))
+
+(defn get-vertical-4 [[col row]]
+  (for [ y (range row (+ row 4))
+        :let [x col]]
+    [x y]))
+
+(defn get-horizontal-4 [[col row]]
+  (for [x (range col (+ col 4))
+        :let [y row]]
+    [x y]))
+
+(def possible-4s
+  (let [spaces (for 
+                 [col (range board-cols) 
+                  row (range board-rows) 
+                  :when (or (<= col 3) (<= row 2))] 
+                 [col row])] 
+   (filter (fn [[& pairs]] 
+             (every? #(and (< (first %) board-cols) (< (second %) board-rows)) pairs)) 
+           (apply concat 
+                  (map 
+                    (juxt get-horizontal-4 get-vertical-4 get-diagonal-4) 
+                    spaces)))))
 
 ;Define the mutable program state
 (def settings (atom {}))
@@ -30,7 +58,7 @@
 
 ;returns a random action
 (defn get-action [[action t]] 
-    (str "place-disc " (rand 8)))
+    (str "place-disc " (rand board-cols)))
 
 ;Parse input from game host
 (defn parse-input [raw-input] 
