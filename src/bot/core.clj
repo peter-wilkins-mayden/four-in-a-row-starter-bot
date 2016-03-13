@@ -56,7 +56,7 @@
 ;Define the mutable setting maps
 (def settings (atom {}))
 (def updates (atom {}))
-(def board (atom []))
+(def current-board (atom []))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update Settings ;;;;;;;;;;;;;;;;;;;;;;;
@@ -64,8 +64,8 @@
 
 ;Update the board with parsed data (list of vectors)
 ;Rows are stored from bottom up, contrary to servers top down
-(defn update-board [s] 
-  (reset! board 
+(defn update-current-board [s] 
+  (reset! current-board 
           (reverse (map #(map read-string (str/split % #","))
                               (str/split s #";")))))
 
@@ -76,37 +76,42 @@
 ;Save game updates
 (defn game-update [[about k v]] 
   (if (= k "field")
-    (update-board v)
+    (update-current-board v)
     (swap! updates assoc-in [about k] (read-string v))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def minimax-depth 4)
+
 ;Returns value in 'b' at (x, y)/(col, row)
-(defn get-cell [[col row]]
-  (nth (nth @board row) col))
+(defn get-cell [board [col row]]
+  (nth (nth board row) col))
 
 ;returns the person who connected 4, or false 
 ;if neither did
-(defn connect-4? [cells] 
-  (let [four (map get-cell cells)] 
+(defn connect-4? [board cells] 
+  (let [four (map (partial get-cell board) cells)] 
     (cond 
       (every? #{1} four) 1
       (every? #{2} four) 2
       :else false
       )))
 
-(defn check-winner [] 
-  (some identity (map connect-4? possible-4s)))
+(defn check-winner [board] 
+  (some identity 
+        (map (partial connect-4? board) possible-4s)))
 
-(defn get-possible-moves [] 
-  (loop [top-row (last @board) moves '() i 0] 
+(defn get-possible-moves [board] 
+  (loop [top-row (last board) moves '() i 0] 
     (if (empty? top-row)
       moves
     (recur (rest top-row) 
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))
+
+(defn get-board-score [board] ())
 
 ;returns a random action
 (defn get-action [[action t]] 
@@ -125,7 +130,7 @@
       "settings" (save-setting args)
       "update" (game-update args)
       "action" (println (get-action args))
-      "vals" (do (println @settings) (println @updates) (println @board))
+      "vals" (do (println @settings) (println @updates) (println @current-board))
       "exit" (System/exit 0)
       (println "Unknown Command"))))
 
