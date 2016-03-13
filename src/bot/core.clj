@@ -34,7 +34,7 @@
     [x y]))
 
 ;Returns a list of all possible rows of x
-(defn possible-xs [x]
+(defn possible-streaks-nomem [x]
   (let [spaces (for 
                  [col (range board-cols) 
                   row (range board-rows) 
@@ -53,9 +53,7 @@
                           (partial get-left-diagonal-x x))
                     spaces)))))
 
-(def possible-4s (possible-xs 4))
-(def possible-3s (possible-xs 3))
-(def possible-2s (possible-xs 2))
+(def possible-streaks (memoize possible-streaks-nomem))
 
 ;Define the mutable setting maps
 (def settings (atom {}))
@@ -83,29 +81,48 @@
     (update-current-board v)
     (swap! updates assoc-in [about k] (read-string v))))
 
+;returns player id (1 or 2)
+(defn player-id [] 
+  (get @settings "your_botid"))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def max-depth 4)
 
+(def infinity 999999999)
+
 ;Returns value in 'b' at (x, y)/(col, row)
 (defn get-cell [board [col row]]
   (nth (nth board row) col))
 
-;returns the person who connected 4, or false 
-;if neither did
-(defn connect-4? [board cells] 
-  (let [four (map (partial get-cell board) cells)] 
+;Check if all the cells in row are owned by the same player
+(defn connected? [board cells] 
+  (let [row (map (partial get-cell board) cells)] 
     (cond 
-      (every? #{1} four) 1
-      (every? #{2} four) 2
+      (every? #{1} row) 1
+      (every? #{2} row) 2
       :else false
       )))
 
-(defn check-winner [board] 
-  (some identity 
-        (map (partial connect-4? board) possible-4s)))
+;Returns a map where the key is player,
+; and value is the number of streaks
+; of length 'streak-len' on 'board'
+(defn check-streaks [board streak-len] 
+  (dissoc (frequencies (map (partial connected? board) 
+             (possible-streaks streak-len))) 
+          false))
+
+(defn get-board-score [board depth] 
+  (let [winner (set (keys (check-streaks board 4))) id (player-id)] 
+    (cond
+      (empty? winner) (- (+ (* (get (check-streaks board 3) id 0) 100) 
+                            (get (check-streaks board 2) id 0)) depth)
+      (contains? winner id) (- infinity depth)
+      :else (+ depth (- infinity))
+      )))
 
 (defn get-possible-moves [board] 
   (loop [top-row (last board) moves '() i 0] 
@@ -114,8 +131,6 @@
     (recur (rest top-row) 
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))
-
-(defn get-board-score [board depth opponent?] ())
 
 ;returns a random action
 (defn get-action [[action t]] 
@@ -135,6 +150,7 @@
       "update" (game-update args)
       "action" (println (get-action args))
       "vals" (do (println @settings) (println @updates) (println @current-board))
+      "score" (println (get-board-score @current-board 0))
       "exit" (System/exit 0)
       (println "Unknown Command"))))
 
