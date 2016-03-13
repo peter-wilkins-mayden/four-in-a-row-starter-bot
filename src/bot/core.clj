@@ -100,6 +100,14 @@
 (defn check-winner [] 
   (some identity (map connect-4? possible-4s)))
 
+(defn get-possible-moves [] 
+  (loop [top-row (last @board) moves '() i 0] 
+    (if (empty? top-row)
+      moves
+    (recur (rest top-row) 
+           (if (= (first top-row) 0) (cons i moves) moves) 
+           (inc i)))))
+
 ;returns a random action
 (defn get-action [[action t]] 
     (str "place-disc " (rand board-cols)))
