@@ -10,11 +10,18 @@
 
 (def board-cols 7)
 
-(defn get-diagonal-4 [[col row]]
+(defn get-left-diagonal-4 [[col row]]
+  (for [x (range (- col 3) (+ 1 col))
+        y (range row (+ row 4))
+        :when (= (+ x y) (+ col row))]
+    [x y]))
+
+(defn get-right-diagonal-4 [[col row]]
   (for [x (range col (+ col 4))
         y (range row (+ row 4))
         :when (= (- x y) (- col row))]
     [x y]))
+
 
 (defn get-vertical-4 [[col row]]
   (for [ y (range row (+ row 4))
@@ -34,10 +41,16 @@
                   :when (or (<= col 3) (<= row 2))] 
                  [col row])] 
    (filter (fn [[& pairs]] 
-             (every? #(and (< (first %) board-cols) (< (second %) board-rows)) pairs)) 
+             (every? #(and (< (first %) board-cols) 
+                           (< (second %) board-rows) 
+                           (>= (first %) 0)) 
+                     pairs)) 
            (apply concat 
                   (map 
-                    (juxt get-horizontal-4 get-vertical-4 get-diagonal-4) 
+                    (juxt get-horizontal-4 
+                          get-vertical-4 
+                          get-right-diagonal-4 
+                          get-left-diagonal-4) 
                     spaces)))))
 
 ;Define the mutable setting maps
