@@ -85,6 +85,9 @@
 (defn player-id [] 
   (get @settings "your_botid"))
 
+(defn opposite-player [player] 
+  (if (= player 1) 2 1))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,7 +99,7 @@
 
 ;Returns value in 'b' at (x, y)/(col, row)
 (defn get-cell [board [col row]]
-  (get-in [row col] board))
+  (get-in board [row col]))
 
 ;Check if all the cells in row are owned by the same player
 (defn connected? [board cells] 
@@ -138,6 +141,14 @@
     false 
     (let [row (.indexOf (map #(nth % col) board) 0)] 
       (assoc-in board [row col] player))))
+
+(defn minimax [depth board player] 
+  (if (> depth max-depth)
+    (get-board-score board depth)
+    (apply max 
+           (map (comp #(minimax (inc depth) % (opposite-player player)) 
+                      #(simulate-move board % player)) 
+                (get-possible-moves board)))))
 
 ;returns a random action
 (defn get-action [[action t]] 
