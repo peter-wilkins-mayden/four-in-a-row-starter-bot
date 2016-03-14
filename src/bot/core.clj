@@ -144,7 +144,7 @@
 
 
 (defn minimax [depth board player]
-  (if (> depth max-depth)
+  (if (= depth max-depth)
     (get-board-score board depth)
     (apply max 
            (map (comp #(minimax (inc depth) % (opposite-player player)) 
