@@ -6,9 +6,14 @@
 ;; Setup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def board-rows 6)
+;Define the mutable setting maps
+(def settings (atom {}))
+(def updates (atom {}))
+(def current-board (atom []))
 
-(def board-cols 7)
+(defn board-rows [] (get @settings "field_rows"))
+
+(defn board-cols [] (get @settings "field_columns"))
 
 (defn get-left-diagonal-x [l [col row]]
   (for [x (range (- col (- l 1)) (+ 1 col))
@@ -36,13 +41,13 @@
 ;Returns a list of all possible rows of x
 (defn possible-streaks-nomem [x]
   (let [spaces (for 
-                 [col (range board-cols) 
-                  row (range board-rows) 
-                  :when (or (<= col (- board-cols x)) (<= row (- board-rows x)))] 
+                 [col (range (board-cols)) 
+                  row (range (board-rows)) 
+                  :when (or (<= col (- (board-cols) x)) (<= row (- (board-rows) x)))] 
                  [col row])] 
    (filter (fn [[& pairs]] 
-             (every? #(and (< (first %) board-cols) 
-                           (< (second %) board-rows) 
+             (every? #(and (< (first %) (board-cols)) 
+                           (< (second %) (board-rows)) 
                            (>= (first %) 0)) 
                      pairs)) 
            (apply concat 
@@ -54,11 +59,6 @@
                     spaces)))))
 
 (def possible-streaks (memoize possible-streaks-nomem))
-
-;Define the mutable setting maps
-(def settings (atom {}))
-(def updates (atom {}))
-(def current-board (atom []))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update Settings ;;;;;;;;;;;;;;;;;;;;;;;
@@ -142,7 +142,8 @@
     (let [row (.indexOf (map #(nth % col) board) 0)] 
       (assoc-in board [row col] player))))
 
-(defn minimax [depth board player] 
+
+(defn minimax [depth board player]
   (if (> depth max-depth)
     (get-board-score board depth)
     (apply max 
@@ -150,9 +151,15 @@
                       #(simulate-move board % player)) 
                 (get-possible-moves board)))))
 
-;returns a random action
+(defn move-for-highest-score [s] 
+  (second (apply max-key first s)))
+
 (defn get-action [[action t]] 
-    (str "place-disc " (rand board-cols)))
+  (let [depth 1 board @current-board player (player-id)] 
+    (move-for-highest-score 
+                  (for [m (get-possible-moves board) 
+                        :let [score (minimax depth (simulate-move board m player) player)]] 
+                    [score m]))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -166,9 +173,7 @@
     (case state
       "settings" (save-setting args)
       "update" (game-update args)
-      "action" (println (get-action args))
-      "vals" (do (println @settings) (println @updates) (println @current-board))
-      "score" (println (get-board-score @current-board 0))
+      "action" (println (str "place_disc " (get-action args)))
       "exit" (System/exit 0)
       (println "Unknown Command"))))
 
