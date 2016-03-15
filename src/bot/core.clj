@@ -88,6 +88,9 @@
 (defn opposite-player [player] 
   (if (= player 1) 2 1))
 
+(defn round [] 
+  (get-in @updates ["game" "round"]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,22 +147,26 @@
 
 
 (defn minimax [depth board player]
-  (if (= depth max-depth)
-    (get-board-score board depth)
-    (apply max 
-           (map (comp #(minimax (inc depth) % (opposite-player player)) 
-                      #(simulate-move board % player)) 
-                (get-possible-moves board)))))
+  (let [score (get-board-score board depth)]
+    (cond 
+      (= depth max-depth) score
+      (> score 900000000) score
+      :else (apply max 
+               (map (comp #(minimax (inc depth) % (opposite-player player)) 
+                          #(simulate-move board % player)) 
+                    (get-possible-moves board))))))
 
 (defn move-for-highest-score [s] 
   (second (apply max-key first s)))
 
 (defn get-action [[action t]] 
-  (let [depth 1 board @current-board player (player-id)] 
-    (move-for-highest-score 
-                  (for [m (get-possible-moves board) 
-                        :let [score (minimax depth (simulate-move board m player) player)]] 
-                    [score m]))))
+  (let [depth 1 board @current-board player (player-id) round (round)] 
+    (if (= round 1)
+      (int (/ (board-cols) 2))
+      (move-for-highest-score 
+                    (for [m (get-possible-moves board) 
+                          :let [score (future (minimax depth (simulate-move board m player) player))]] 
+                      [@score m])))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
