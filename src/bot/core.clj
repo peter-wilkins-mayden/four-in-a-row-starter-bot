@@ -93,7 +93,7 @@
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def max-depth 2)
+(def max-depth 5)
 
 (def infinity 999999999)
 
@@ -113,12 +113,12 @@
 ;Returns a map where the key is player,
 ; and value is the number of streaks
 ; of length 'streak-len' on 'board'
-(defn check-streaks [board streak-len] 
+(def check-streaks (memoize (fn [board streak-len] 
   (dissoc (frequencies (map (partial connected? board) 
              (possible-streaks streak-len))) 
-          false))
+          false))))
 
-(defn get-board-score [board depth] 
+(def get-board-score (memoize (fn [board depth] 
   (let [winner (set (keys (check-streaks board 4))) id (player-id) opponent (opposite-player (player-id))] 
     (cond
       (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 100) 
@@ -127,23 +127,26 @@
                          depth)
       (contains? winner id) (- infinity depth)
       :else (- depth infinity)
-      )))
+      )))))
 
-(defn get-possible-moves [board] 
+(def get-possible-moves (memoize (fn [board] 
   (loop [top-row (last board) moves '() i 0] 
     (if (empty? top-row)
       moves
     (recur (rest top-row) 
            (if (= (first top-row) 0) (cons i moves) moves) 
-           (inc i)))))
+           (inc i)))))))
+
 
 ;Simulate a user placing a chip in board, returns new board
-(defn simulate-move [board col player] 
+
+(def simulate-move (memoize (fn [board col player] 
     (let [row (.indexOf (map #(nth % col) board) 0)] 
-      (assoc-in board [row col] player)))
+      (assoc-in board [row col] player)))))
 
+(declare minimax)
 
-(defn minimax [depth bs player move]
+(defn minimax-nomemo [depth bs player move]
   (let [max-or-min (if (= player (player-id)) min max)
         boards (map #(simulate-move % move player) bs)]
   (if (= depth max-depth) 
@@ -151,8 +154,9 @@
     (apply max-or-min (map  #(minimax (inc depth) boards (opposite-player player) %)
                      (set (flatten (map get-possible-moves boards))))))))
 
+(def minimax (memoize minimax-nomemo))
+
 (defn val-for-highest-key [s] 
-  (println s)
   (second (apply max-key first s)))
 
 (defn get-action [[action t]] 
