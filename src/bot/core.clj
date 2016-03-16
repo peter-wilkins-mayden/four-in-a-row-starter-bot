@@ -88,15 +88,12 @@
 (defn opposite-player [player] 
   (if (= player 1) 2 1))
 
-(defn round [] 
-  (get-in @updates ["game" "round"]))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def max-depth 5)
+(def max-depth 2)
 
 (def infinity 999999999)
 
@@ -116,23 +113,23 @@
 ;Returns a map where the key is player,
 ; and value is the number of streaks
 ; of length 'streak-len' on 'board'
-(defn check-streaks-raw [board streak-len] 
+(defn check-streaks [board streak-len] 
   (dissoc (frequencies (map (partial connected? board) 
              (possible-streaks streak-len))) 
           false))
 
-(def check-streaks (memoize check-streaks-raw))
-
 (defn get-board-score [board depth] 
-  (let [winner (set (keys (check-streaks board 4))) id (player-id)] 
+  (let [winner (set (keys (check-streaks board 4))) id (player-id) opponent (opposite-player (player-id))] 
     (cond
-      (empty? winner) (- (+ (* (get (check-streaks board 3) id 0) 100) 
-                            (get (check-streaks board 2) id 0)) depth)
+      (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 100) 
+                               (get (check-streaks board 2) id 0)) 
+                            (* (get (check-streaks board 3) opponent 0) 100))
+                         depth)
       (contains? winner id) (- infinity depth)
-      :else (+ depth (- infinity))
+      :else (- depth infinity)
       )))
 
-(defn get-possible-moves-raw [board] 
+(defn get-possible-moves [board] 
   (loop [top-row (last board) moves '() i 0] 
     (if (empty? top-row)
       moves
@@ -140,43 +137,32 @@
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))
 
-(def get-possible-moves (memoize get-possible-moves-raw))
-
 ;Simulate a user placing a chip in board, returns new board
-(defn simulate-move-raw [board col player] 
-  (if (not (some #{col} (get-possible-moves board)))
-    false 
+(defn simulate-move [board col player] 
     (let [row (.indexOf (map #(nth % col) board) 0)] 
-      (assoc-in board [row col] player))))
+      (assoc-in board [row col] player)))
 
-(def simulate-move (memoize simulate-move-raw))
 
-(declare minimax)
+(defn minimax [depth bs player move]
+  (let [max-or-min (if (= player (player-id)) min max)
+        boards (map #(simulate-move % move player) bs)]
+  (if (= depth max-depth) 
+    (apply max-or-min (map #(get-board-score % depth) boards))
+    (apply max-or-min (map  #(minimax (inc depth) boards (opposite-player player) %)
+                     (set (flatten (map get-possible-moves boards))))))))
 
-(defn minimax-raw [depth board player]
-  (let [score (get-board-score board depth)]
-    (cond 
-      (= depth max-depth) score
-      (> (Math/abs score) 900000000) score
-      :else (apply (if (= player (player-id)) max min) 
-               (map (comp #(minimax (inc depth) % (opposite-player player)) 
-                          #(simulate-move board % player)) 
-                    (get-possible-moves board))))))
-
-(def minimax (memoize minimax-raw))
-
-(defn move-for-highest-score [s] 
+(defn val-for-highest-key [s] 
+  (println s)
   (second (apply max-key first s)))
 
 (defn get-action [[action t]] 
-  (let [depth 1 board @current-board player (player-id) round (round)] 
-    (if (= round 1)
-      (int (/ (board-cols) 2))
-      (move-for-highest-score 
-                    (for [m (get-possible-moves board) 
-                          :let [score (minimax depth (simulate-move board m player) player)]] 
-                      [score m])))))
-
+  (let [depth 1 
+        player (player-id) 
+        board @current-board] 
+    (val-for-highest-key 
+      (for [m (get-possible-moves board)
+            :let [score (minimax depth [board] (player-id) m)]]
+        [score m]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Logic Loop ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -200,4 +186,3 @@
     (recur)))
 
 (defn -main [] (take-input))
-
