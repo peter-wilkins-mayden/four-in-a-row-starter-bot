@@ -83,6 +83,9 @@
 (defn player-id [] 
   (get @settings "your_botid"))
 
+(defn round [] 
+  (get-in @updates ["game" "round"]))
+
 (defn opposite-player [player] 
   (if (= player 1) 2 1))
 
@@ -133,7 +136,7 @@
 (def get-possible-moves (memoize (fn [board] 
   (loop [top-row (last board) moves '() i 0] 
     (if (empty? top-row)
-      moves
+      (shuffle moves)
     (recur (rest top-row) 
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))))
@@ -165,10 +168,11 @@
   (let [depth 1 
         player (player-id) 
         board @current-board] 
+    (if (= (round) 1) 3
     (val-for-highest-key 
       (for [m (get-possible-moves board)
             :let [score (minimax depth (simulate-move board m player) player)]]
-        [score m]))))
+        [score m])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Logic Loop ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
