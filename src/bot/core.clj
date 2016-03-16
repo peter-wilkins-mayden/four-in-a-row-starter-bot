@@ -93,7 +93,7 @@
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def max-depth 5)
+(def max-depth 2)
 
 (def infinity 999999999)
 
@@ -123,10 +123,10 @@
         id (player-id) 
         opponent (opposite-player (player-id))] 
     (cond
-      (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 100) 
-                               (* (get (check-streaks board 2) id 0) 10))
-                            (+ (* (get (check-streaks board 3) opponent 0) 1000)
-                               (* (get (check-streaks board 2) opponent 0) 10)))
+      (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 10) 
+                               (* (get (check-streaks board 2) id 0) 1))
+                            (+ (* (get (check-streaks board 3) opponent 0) 10)
+                               (* (get (check-streaks board 2) opponent 0) 1)))
                          depth)
       (contains? winner id) (- infinity depth)
       :else (- depth infinity)
@@ -149,17 +149,20 @@
 
 (declare minimax)
 
-(defn minimax-nomemo [depth bs player move]
+(defn minimax-nomemo [depth board player]
   (let [max-or-min (if (= player (player-id)) min max)
-        boards (map #(simulate-move % move player) bs)]
-  (if (= depth max-depth) 
-    (apply max-or-min (map #(get-board-score % depth) boards))
-    (apply max-or-min (map  #(minimax (inc depth) boards (opposite-player player) %)
-                     (set (flatten (map get-possible-moves boards))))))))
+        score (get-board-score board depth)]
+    (cond 
+      (> (Math/abs score) 900000000) score
+      (= depth max-depth) score
+      :else (apply max-or-min 
+              (map #(minimax (inc depth) % (opposite-player player)) 
+                             (map #(simulate-move board % (opposite-player player)) 
+                                  (get-possible-moves board)))))))
 
 (def minimax (memoize minimax-nomemo))
 
-(defn val-for-highest-key [s]
+(defn val-for-highest-key [s] 
   (second (apply max-key first s)))
 
 (defn get-action [[action t]] 
@@ -168,7 +171,7 @@
         board @current-board] 
     (val-for-highest-key 
       (for [m (get-possible-moves board)
-            :let [score (minimax depth [board] (player-id) m)]]
+            :let [score (minimax depth (simulate-move board m player) player)]]
         [score m]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -193,4 +196,3 @@
     (recur)))
 
 (defn -main [] (take-input))
-
