@@ -119,11 +119,14 @@
           false))))
 
 (def get-board-score (memoize (fn [board depth] 
-  (let [winner (set (keys (check-streaks board 4))) id (player-id) opponent (opposite-player (player-id))] 
+  (let [winner (set (keys (check-streaks board 4))) 
+        id (player-id) 
+        opponent (opposite-player (player-id))] 
     (cond
       (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 100) 
-                               (get (check-streaks board 2) id 0)) 
-                            (* (get (check-streaks board 3) opponent 0) 100))
+                               (* (get (check-streaks board 2) id 0) 10))
+                            (+ (* (get (check-streaks board 3) opponent 0) 1000)
+                               (* (get (check-streaks board 2) opponent 0) 10)))
                          depth)
       (contains? winner id) (- infinity depth)
       :else (- depth infinity)
@@ -156,7 +159,7 @@
 
 (def minimax (memoize minimax-nomemo))
 
-(defn val-for-highest-key [s] 
+(defn val-for-highest-key [s]
   (second (apply max-key first s)))
 
 (defn get-action [[action t]] 
@@ -190,3 +193,4 @@
     (recur)))
 
 (defn -main [] (take-input))
+
