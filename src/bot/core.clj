@@ -150,8 +150,8 @@
   (let [score (get-board-score board depth)]
     (cond 
       (= depth max-depth) score
-      (> score 900000000) score
-      :else (apply max 
+      (> (Math/abs score) 900000000) score
+      :else (apply (if (= player (player-id)) max min) 
                (map (comp #(minimax (inc depth) % (opposite-player player)) 
                           #(simulate-move board % player)) 
                     (get-possible-moves board))))))
@@ -165,8 +165,8 @@
       (int (/ (board-cols) 2))
       (move-for-highest-score 
                     (for [m (get-possible-moves board) 
-                          :let [score (future (minimax depth (simulate-move board m player) player))]] 
-                      [@score m])))))
+                          :let [score (minimax depth (simulate-move board m player) player)]] 
+                      [score m])))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
