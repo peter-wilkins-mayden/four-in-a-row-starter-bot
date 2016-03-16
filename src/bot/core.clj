@@ -39,7 +39,7 @@
     [x y]))
 
 ;Returns a list of all possible rows of x
-(defn possible-streaks-nomem [x]
+(def possible-streaks (memoize (fn [x]
   (let [spaces (for 
                  [col (range (board-cols)) 
                   row (range (board-rows)) 
@@ -56,9 +56,7 @@
                           (partial get-vertical-x x)
                           (partial get-right-diagonal-x x)
                           (partial get-left-diagonal-x x))
-                    spaces)))))
-
-(def possible-streaks (memoize possible-streaks-nomem))
+                    spaces)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update Settings ;;;;;;;;;;;;;;;;;;;;;;;
@@ -93,7 +91,7 @@
 ;; Algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def max-depth 2)
+(def max-depth 4)
 
 (def infinity 999999999)
 
@@ -123,10 +121,10 @@
         id (player-id) 
         opponent (opposite-player (player-id))] 
     (cond
-      (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 10) 
-                               (* (get (check-streaks board 2) id 0) 1))
-                            (+ (* (get (check-streaks board 3) opponent 0) 10)
-                               (* (get (check-streaks board 2) opponent 0) 1)))
+      (empty? winner) (- (- (+ (* (get (check-streaks board 3) id 0) 100) 
+                               (* (get (check-streaks board 2) id 0) 10))
+                            (+ (* (get (check-streaks board 3) opponent 0) 100)
+                               (* (get (check-streaks board 2) opponent 0) 10)))
                          depth)
       (contains? winner id) (- infinity depth)
       :else (- depth infinity)
@@ -140,8 +138,6 @@
            (if (= (first top-row) 0) (cons i moves) moves) 
            (inc i)))))))
 
-
-;Simulate a user placing a chip in board, returns new board
 
 (def simulate-move (memoize (fn [board col player] 
     (let [row (.indexOf (map #(nth % col) board) 0)] 
@@ -186,7 +182,6 @@
       "settings" (save-setting args)
       "update" (game-update args)
       "action" (println (str "place_disc " (get-action args)))
-      "exit" (System/exit 0)
       (println "Unknown Command"))))
 
 ;Initiate an input/output loop
