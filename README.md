@@ -2,4 +2,4 @@
 
 ## A Clojure Bot
 
-Clojure bot for the aigames.com game, "Four-in-a-Row"
+Clojure starter bot for the https://www.riddles.io/ game, "Four-in-a-Row"
